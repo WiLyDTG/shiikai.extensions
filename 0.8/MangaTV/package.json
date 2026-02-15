@@ -1,0 +1,22 @@
+{
+  "name": "mangatv-extension",
+  "version": "1.0.0",
+  "description": "MangaTV extension for Paperback/Felii - scrapes manga from mangatv.net",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "paperback",
+    "felii",
+    "manga",
+    "mangatv",
+    "extension"
+  ],
+  "author": "Generated",
+  "license": "MIT",
+  "dependencies": {
+    "@paperback/types": "^6.0.0",
+    "cheerio": "^1.0.0-rc.12"
+  }
+}
