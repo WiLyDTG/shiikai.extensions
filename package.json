@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "Paperback/Felii extensions for Spanish manga sites",
   "scripts": {
-    "bundle": "node bundle.js"
+    "build": "webpack --config webpack.config.js",
+    "build:source": "webpack --config webpack.config.js --entry ./0.8/MangaTV/source.js.original --output-filename source.js",
+    "build:index": "webpack --config webpack.config.js --entry ./0.8/MangaTV/index.js.original --output-filename index.js"
   },
   "keywords": [
     "paperback",
@@ -13,8 +15,11 @@
   "author": "WiLyDTG",
   "license": "MIT",
   "devDependencies": {
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.29.0",
     "@paperback/toolchain": "^1.0.0-alpha.57",
     "@types/node": "^25.2.3",
+    "babelify": "^10.0.0",
     "browserify": "^17.0.0",
     "browserify-shim": "^3.8.16",
     "typescript": "^5.9.3",
