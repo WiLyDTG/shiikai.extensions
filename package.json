@@ -3,9 +3,8 @@
   "version": "1.0.0",
   "description": "Paperback/Felii extensions for Spanish manga sites",
   "scripts": {
-    "build": "webpack --config webpack.config.js",
-    "build:source": "webpack --config webpack.config.js --env entry=./0.8/MangaTV/index.js --env filename=source.js",
-    "build:index": "webpack --config webpack.config.js --env entry=./0.8/MangaTV/index.js --env filename=index.js"
+    "build": "browserify 0.8/MangaTV/index.js -s Sources -o 0.8/MangaTV/index.bundle.js",
+    "build:webpack": "webpack --config webpack.config.js"
   },
   "keywords": [
     "paperback",
