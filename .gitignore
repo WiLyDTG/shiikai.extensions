@@ -1,0 +1,23 @@
+# Node modules
+node_modules/
+
+# Build artifacts
+*.original
+dist/
+bundles/
+tmp-build/
+tmp-bundle/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
