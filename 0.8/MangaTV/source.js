@@ -352,18 +352,14 @@ class MangaTV extends types_1.Source {
         let image = $('div.thumb img').attr('src') || $('img.ts-post-image').first().attr('src') || "";
         if (image.startsWith('//')) image = 'https:' + image;
         
-        // Description - extract from raw HTML with regex (most reliable)
+        // Description - use cheerio like FeliiCL
         let desc = "Sin descripción";
-        const sinopsisMatch = response.data.match(/Sinopsis<\/b><span>(.*?)<\/span>/is);
-        if (sinopsisMatch && sinopsisMatch[1]) {
-            desc = sinopsisMatch[1].trim()
-                .replace(/<[^>]+>/g, '') // Remove any HTML tags
-                .replace(/&quot;/g, '"')
-                .replace(/&#039;/g, "'")
-                .replace(/&amp;/g, '&')
-                .replace(/&lt;/g, '<')
-                .replace(/&gt;/g, '>');
-        }
+        $('div.wd-full b').each(function() {
+            if ($(this).text().trim() === 'Sinopsis') {
+                const spanText = $(this).next('span').text().trim();
+                if (spanText) desc = spanText;
+            }
+        });
         
         let status = 0;
         const statusText = ($('div.imptdt:contains("Estado") i').text() || 
