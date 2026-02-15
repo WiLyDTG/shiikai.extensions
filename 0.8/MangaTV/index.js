@@ -352,14 +352,14 @@ class MangaTV extends types_1.Source {
         let image = $('div.thumb img').attr('src') || $('img.ts-post-image').first().attr('src') || "";
         if (image.startsWith('//')) image = 'https:' + image;
         
-        // Description - use cheerio like FeliiCL
+        // Description - find span sibling of b containing Sinopsis
         let desc = "Sin descripción";
-        $('div.wd-full b').each(function() {
-            if ($(this).text().trim() === 'Sinopsis') {
-                const spanText = $(this).next('span').text().trim();
-                if (spanText) desc = spanText;
-            }
+        const sinopsisDiv = $('div.wd-full').filter(function() {
+            return $(this).find('b').text().trim() === 'Sinopsis';
         });
+        if (sinopsisDiv.length > 0) {
+            desc = sinopsisDiv.find('span').text().trim() || desc;
+        }
         
         let status = 0;
         const statusText = ($('div.imptdt:contains("Estado") i').text() || 
