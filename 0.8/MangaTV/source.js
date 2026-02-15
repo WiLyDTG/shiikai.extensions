@@ -354,13 +354,18 @@ class MangaTV extends types_1.Source {
         
         // Description - use regex on raw HTML (most reliable method)
         let desc = "Sin descripción";
-        const descMatch = response.data.match(/Sinopsis<\/b><span>([^<]+)/i);
-        if (descMatch && descMatch[1]) {
-            desc = descMatch[1]
-                .replace(/&#039;/g, "'")
-                .replace(/&quot;/g, '"')
-                .replace(/&amp;/g, '&')
-                .trim();
+        try {
+            const htmlStr = String(response.data);
+            const descMatch = htmlStr.match(/Sinopsis<\/b><span>([^<]+)/i);
+            if (descMatch && descMatch[1]) {
+                desc = descMatch[1]
+                    .replace(/&#039;/g, "'")
+                    .replace(/&quot;/g, '"')
+                    .replace(/&amp;/g, '&')
+                    .trim();
+            }
+        } catch(e) {
+            // Fallback to default
         }
         
         let status = 0;
@@ -394,6 +399,7 @@ class MangaTV extends types_1.Source {
             status: status,
             author: author,
             desc: desc,
+            hentai: false,
             tags: [createTagSection({ id: '0', label: 'Géneros', tags: tags })]
         });
     }
