@@ -1,5 +1,5 @@
 {
-  "buildTime": "2025-02-15T19:30:00.000Z",
+  "buildTime": "2025-02-15T20:00:00.000Z",
   "sources": [
     {
       "id": "MangaTV",
@@ -8,7 +8,7 @@
       "desc": "Extensión para leer manga desde mangatv.net",
       "website": "https://github.com/WiLyDTG/shiikai.extensions",
       "contentRating": "MATURE",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "icon": "icon.png",
       "tags": [
         {
