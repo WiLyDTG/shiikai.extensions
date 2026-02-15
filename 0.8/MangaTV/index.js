@@ -2,7 +2,20 @@
   Source,
   ContentRating,
   HomeSectionType,
-} from '@paperback/types/lib/compat/0.8/index.js';
+} from '@paperback/types/lib/compat/0.8/types.js';
+
+// Polyfill de funciones globales para Paperback 0.8
+const createRequestManager = (info) => globalThis.App?.createRequestManager?.(info) ?? info;
+const createRequestObject = (info) => globalThis.App?.createRequestObject?.(info) ?? info;
+const createManga = (info) => globalThis.App?.createManga?.(info) ?? info;
+const createChapter = (info) => globalThis.App?.createChapter?.(info) ?? info;
+const createChapterDetails = (info) => globalThis.App?.createChapterDetails?.(info) ?? info;
+const createMangaTile = (info) => globalThis.App?.createMangaTile?.(info) ?? info;
+const createHomeSection = (info) => globalThis.App?.createHomeSection?.(info) ?? info;
+const createPagedResults = (info) => globalThis.App?.createPagedResults?.(info) ?? info;
+const createTag = (info) => globalThis.App?.createTag?.(info) ?? info;
+const createTagSection = (info) => globalThis.App?.createTagSection?.(info) ?? info;
+const createIconText = (info) => globalThis.App?.createIconText?.(info) ?? info;
 
 const MANGATV_DOMAIN = 'https://mangatv.net';
 
@@ -29,9 +42,22 @@ export const MangaTVInfo = {
 };
 
 export class MangaTV extends Source {
-  requestManager = App.createRequestManager({
+  requestManager = createRequestManager({
     requestsPerSecond: 3,
-    requestTimeout: 15000
+    requestTimeout: 15000,
+    interceptor: {
+      interceptRequest: async (request) => {
+        request.headers = {
+          ...(request.headers ?? {}),
+          'Referer': MANGATV_DOMAIN,
+          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1'
+        };
+        return request;
+      },
+      interceptResponse: async (response) => {
+        return response;
+      }
+    }
   });
   
   baseUrl = MANGATV_DOMAIN;
@@ -41,7 +67,7 @@ export class MangaTV extends Source {
   }
 
   async getMangaDetails(mangaId) {
-    const request = App.createRequest({
+    const request = createRequestObject({
       url: `${this.baseUrl}/manga/${mangaId}`,
       method: 'GET'
     });
@@ -68,17 +94,17 @@ export class MangaTV extends Source {
     const desc = descElement.text().trim() || 
                  $('meta[name="description"]').attr('content') || '';
 
-    let status = 1; // ONGOING
+    let status = 0; // ONGOING
     const statusText = $('*:contains("Estado")').text().toLowerCase();
     if (statusText.includes('finalizado') || statusText.includes('completed')) {
-      status = 0; // COMPLETED
+      status = 1; // COMPLETED
     }
 
     const tags = [];
     $('a[href*="genre"]').each((_, el) => {
       const tagName = $(el).text().trim();
       if (tagName) {
-        tags.push(App.createTag({ id: tagName.toLowerCase(), label: tagName }));
+        tags.push(createTag({ id: tagName.toLowerCase(), label: tagName }));
       }
     });
 
@@ -88,21 +114,21 @@ export class MangaTV extends Source {
       author = authorEl;
     }
 
-    return App.createManga({
+    return createManga({
       id: mangaId,
       titles: [title],
       image: image,
       status: status,
       author: author,
       artist: author,
-      tags: [App.createTagSection({ id: '0', label: 'Generos', tags: tags })],
+      tags: [createTagSection({ id: '0', label: 'Generos', tags: tags })],
       desc: desc,
       rating: 0
     });
   }
 
   async getChapters(mangaId) {
-    const request = App.createRequest({
+    const request = createRequestObject({
       url: `${this.baseUrl}/manga/${mangaId}`,
       method: 'GET'
     });
@@ -137,7 +163,7 @@ export class MangaTV extends Source {
 
       const exists = chapters.find(ch => ch.id === chapterId);
       if (!exists) {
-        chapters.push(App.createChapter({
+        chapters.push(createChapter({
           id: chapterId,
           mangaId: mangaId,
           name: `Capitulo ${chapterNum}`,
@@ -154,7 +180,7 @@ export class MangaTV extends Source {
   }
 
   async getChapterDetails(mangaId, chapterId) {
-    const request = App.createRequest({
+    const request = createRequestObject({
       url: `${this.baseUrl}/leer/${chapterId}`,
       method: 'GET'
     });
@@ -164,27 +190,18 @@ export class MangaTV extends Source {
 
     const pages = [];
 
-    $('img[src*="mangatv.net/library"], img[data-src*="mangatv.net/library"]').each((_, el) => {
+    // Buscar imagenes del lector
+    $('img').each((_, el) => {
       let src = $(el).attr('src') || $(el).attr('data-src');
       if (src) {
         if (src.startsWith('//')) {
           src = `https:${src}`;
         }
-        if (src.includes('/library/') && !pages.includes(src)) {
-          pages.push(src);
-        }
-      }
-    });
-
-    // Buscar en img5.mangatv.net que es el CDN
-    $('img[src*="img5.mangatv.net"], img[data-src*="img5.mangatv.net"]').each((_, el) => {
-      let src = $(el).attr('src') || $(el).attr('data-src');
-      if (src) {
-        if (src.startsWith('//')) {
-          src = `https:${src}`;
-        }
-        if (!pages.includes(src)) {
-          pages.push(src);
+        // Solo incluir imagenes del CDN de MangaTV
+        if (src.includes('img5.mangatv.net') || (src.includes('mangatv.net') && src.includes('/library/'))) {
+          if (!pages.includes(src)) {
+            pages.push(src);
+          }
         }
       }
     });
@@ -202,11 +219,10 @@ export class MangaTV extends Source {
       }
     }
 
-    return App.createChapterDetails({
+    return createChapterDetails({
       id: chapterId,
       mangaId: mangaId,
-      pages: pages,
-      longStrip: false
+      pages: pages
     });
   }
 
@@ -223,7 +239,7 @@ export class MangaTV extends Source {
       url += `&genre[]=${genres}`;
     }
 
-    const request = App.createRequest({
+    const request = createRequestObject({
       url: url,
       method: 'GET'
     });
@@ -252,11 +268,10 @@ export class MangaTV extends Source {
 
       const exists = manga.find(m => m.id === mangaId);
       if (!exists && title.length > 0 && !title.includes('VER TODO')) {
-        manga.push(App.createMangaTile({
+        manga.push(createMangaTile({
           id: mangaId,
           image: image || `${this.baseUrl}/assets/images/black.png`,
-          title: App.createIconText({ text: title }),
-          subtitleText: App.createIconText({ text: '' })
+          title: createIconText({ text: title })
         }));
       }
     });
@@ -265,31 +280,32 @@ export class MangaTV extends Source {
                     $('a:contains("Next")').length > 0 ||
                     $('a:contains(">>")').length > 0;
 
-    return App.createPagedResults({
+    return createPagedResults({
       results: manga,
       metadata: hasNext ? { page: page + 1 } : undefined
     });
   }
 
   async getHomePageSections(sectionCallback) {
-    const latestSection = App.createHomeSection({
+    const latestSection = createHomeSection({
       id: 'latest',
       title: 'Ultimas Actualizaciones',
       type: HomeSectionType.singleRowNormal,
-      containsMoreItems: true
+      view_more: true
     });
 
-    const popularSection = App.createHomeSection({
+    const popularSection = createHomeSection({
       id: 'popular',
       title: 'Mangas Populares',
-      type: HomeSectionType.singleRowNormal,
-      containsMoreItems: true
+      type: HomeSectionType.singleRowLarge,
+      view_more: true
     });
 
     sectionCallback(latestSection);
     sectionCallback(popularSection);
 
-    const latestRequest = App.createRequest({
+    // Cargar ultimas actualizaciones
+    const latestRequest = createRequestObject({
       url: `${this.baseUrl}/lista`,
       method: 'GET'
     });
@@ -317,11 +333,10 @@ export class MangaTV extends Source {
 
       const exists = latestManga.find(m => m.id === mangaId);
       if (!exists && title.length > 2 && !title.includes('VER TODO')) {
-        latestManga.push(App.createMangaTile({
+        latestManga.push(createMangaTile({
           id: mangaId,
           image: image || `${this.baseUrl}/assets/images/black.png`,
-          title: App.createIconText({ text: title }),
-          subtitleText: App.createIconText({ text: '' })
+          title: createIconText({ text: title })
         }));
       }
     });
@@ -329,7 +344,8 @@ export class MangaTV extends Source {
     latestSection.items = latestManga.slice(0, 20);
     sectionCallback(latestSection);
 
-    const popularRequest = App.createRequest({
+    // Cargar mangas populares desde la pagina principal
+    const popularRequest = createRequestObject({
       url: this.baseUrl,
       method: 'GET'
     });
@@ -357,11 +373,10 @@ export class MangaTV extends Source {
 
       const exists = popularManga.find(m => m.id === mangaId);
       if (!exists && title.length > 2 && !title.includes('VER TODO')) {
-        popularManga.push(App.createMangaTile({
+        popularManga.push(createMangaTile({
           id: mangaId,
           image: image || `${this.baseUrl}/assets/images/black.png`,
-          title: App.createIconText({ text: title }),
-          subtitleText: App.createIconText({ text: '' })
+          title: createIconText({ text: title })
         }));
       }
     });
@@ -378,7 +393,7 @@ export class MangaTV extends Source {
       url = `${this.baseUrl}/lista?ordenar=votos&page=${page}`;
     }
 
-    const request = App.createRequest({
+    const request = createRequestObject({
       url: url,
       method: 'GET'
     });
@@ -407,11 +422,10 @@ export class MangaTV extends Source {
 
       const exists = manga.find(m => m.id === mangaId);
       if (!exists && title.length > 2 && !title.includes('VER TODO')) {
-        manga.push(App.createMangaTile({
+        manga.push(createMangaTile({
           id: mangaId,
           image: image || `${this.baseUrl}/assets/images/black.png`,
-          title: App.createIconText({ text: title }),
-          subtitleText: App.createIconText({ text: '' })
+          title: createIconText({ text: title })
         }));
       }
     });
@@ -419,14 +433,14 @@ export class MangaTV extends Source {
     const hasNext = $('a[href*="page=' + (page + 1) + '"]').length > 0 ||
                     $('a:contains(">>")').length > 0;
 
-    return App.createPagedResults({
+    return createPagedResults({
       results: manga,
       metadata: hasNext ? { page: page + 1 } : undefined
     });
   }
 
   async getSearchTags() {
-    const request = App.createRequest({
+    const request = createRequestObject({
       url: `${this.baseUrl}/lista`,
       method: 'GET'
     });
@@ -441,7 +455,7 @@ export class MangaTV extends Source {
       if (value && label && label !== 'Todos') {
         const exists = genres.find(g => g.id === value.toLowerCase());
         if (!exists) {
-          genres.push(App.createTag({ id: value.toLowerCase(), label: label }));
+          genres.push(createTag({ id: value.toLowerCase(), label: label }));
         }
       }
     });
@@ -451,18 +465,18 @@ export class MangaTV extends Source {
       const value = $(el).attr('value');
       const label = $(el).text().trim();
       if (value && label && label !== 'Todos') {
-        types.push(App.createTag({ id: value, label: label }));
+        types.push(createTag({ id: value, label: label }));
       }
     });
 
     return [
-      App.createTagSection({ id: 'genres', label: 'Generos', tags: genres }),
-      App.createTagSection({ id: 'types', label: 'Tipo', tags: types })
+      createTagSection({ id: 'genres', label: 'Generos', tags: genres }),
+      createTagSection({ id: 'types', label: 'Tipo', tags: types })
     ];
   }
 
-  getCloudflareBypassRequestAsync() {
-    return App.createRequest({
+  getCloudflareBypassRequest() {
+    return createRequestObject({
       url: this.baseUrl,
       method: 'GET',
       headers: {
