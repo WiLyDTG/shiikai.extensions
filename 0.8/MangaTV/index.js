@@ -30,7 +30,13 @@ class MangaTV extends Source {
                 interceptRequest: async (request) => {
                     request.headers = {
                         ...(request.headers || {}),
-                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                        "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+                        "Accept-Encoding": "gzip, deflate, br",
+                        "DNT": "1",
+                        "Connection": "keep-alive",
+                        "Upgrade-Insecure-Requests": "1",
                         "Referer": BASE_URL + "/"
                     };
                     return request;
@@ -55,84 +61,99 @@ class MangaTV extends Source {
     }
 
     async getMangaDetails(mangaId) {
-        const request = createRequestObject({
-            url: `${BASE_URL}/manga/${mangaId}/`,
-            method: "GET"
-        });
-        const response = await this.requestManager.schedule(request, 1);
-        const $ = cheerio.load(response.data);
+        try {
+            const request = createRequestObject({
+                url: `${BASE_URL}/manga/${mangaId}/`,
+                method: "GET"
+            });
+            const response = await this.requestManager.schedule(request, 1);
+            const $ = cheerio.load(response.data);
 
-        const title = $("h1.entry-title").text().trim() || "Unknown";
-        const image = $("div.thumbook img").first().attr("src") || "";
-        const desc = $("div.wd-full p").text().trim() || "";
-        
-        return createManga({
-            id: mangaId,
-            titles: [title],
-            image: this.normalizeImageUrl(image),
-            status: MangaStatus.ONGOING,
-            author: "",
-            desc: desc,
-            tags: []
-        });
+            const title = $("h1.entry-title").text().trim() || "Unknown";
+            const image = $("div.thumbook img").first().attr("src") || "";
+            const desc = $("div.wd-full p").text().trim() || "";
+            
+            return createManga({
+                id: mangaId,
+                titles: [title],
+                image: this.normalizeImageUrl(image),
+                status: MangaStatus.ONGOING,
+                author: "",
+                desc: desc,
+                tags: []
+            });
+        } catch (error) {
+            console.error(`Error fetching manga details for ${mangaId}:`, error);
+            throw error;
+        }
     }
 
     async getChapters(mangaId) {
-        const request = createRequestObject({
-            url: `${BASE_URL}/manga/${mangaId}/`,
-            method: "GET"
-        });
-        const response = await this.requestManager.schedule(request, 1);
-        const $ = cheerio.load(response.data);
+        try {
+            const request = createRequestObject({
+                url: `${BASE_URL}/manga/${mangaId}/`,
+                method: "GET"
+            });
+            const response = await this.requestManager.schedule(request, 1);
+            const $ = cheerio.load(response.data);
 
-        const chapters = [];
-        $("ul.clstyle li").each((i, el) => {
-            const $el = $(el);
-            const link = $el.find("a").first();
-            const href = link.attr("href") || "";
-            
-            if (!href) return;
-            
-            const chapId = href.split("/").filter(x => x).pop();
-            const name = link.text().trim();
-            const chapNum = this.extractChapterNumber(name);
-            
-            chapters.push(createChapter({
-                id: chapId,
-                mangaId: mangaId,
-                name: name,
-                chapNum: chapNum,
-                time: new Date(),
-                langCode: "es"
-            }));
-        });
+            const chapters = [];
+            $("ul.clstyle li").each((i, el) => {
+                const $el = $(el);
+                const link = $el.find("a").first();
+                const href = link.attr("href") || "";
+                
+                if (!href) return;
+                
+                const chapId = href.split("/").filter(x => x).pop();
+                const name = link.text().trim();
+                const chapNum = this.extractChapterNumber(name);
+                
+                chapters.push(createChapter({
+                    id: chapId,
+                    mangaId: mangaId,
+                    name: name,
+                    chapNum: chapNum,
+                    time: new Date(),
+                    langCode: "es"
+                }));
+            });
 
-        return chapters;
+            return chapters;
+        } catch (error) {
+            console.error(`Error fetching chapters for ${mangaId}:`, error);
+            throw error;
+        }
     }
 
     async getChapterDetails(mangaId, chapterId) {
-        const request = createRequestObject({
-            url: `${BASE_URL}/leer/${chapterId}/`,
-            method: "GET"
-        });
-        const response = await this.requestManager.schedule(request, 1);
-        const $ = cheerio.load(response.data);
+        try {
+            const request = createRequestObject({
+                url: `${BASE_URL}/leer/${chapterId}/`,
+                method: "GET"
+            });
+            const response = await this.requestManager.schedule(request, 1);
+            const $ = cheerio.load(response.data);
 
-        const pages = [];
-        
-        // Try multiple selectors for image containers
-        $("div.visor img, div.readerarea img, div.read-content img").each((i, el) => {
-            const src = $(el).attr("src") || $(el).attr("data-src") || "";
-            if (src && src.length > 0) {
-                pages.push(this.normalizeImageUrl(src));
-            }
-        });
+            const pages = [];
+            
+            // Try multiple selectors for image containers
+            $("div.visor img, div.readerarea img, div.read-content img").each((i, el) => {
+                const src = $(el).attr("src") || $(el).attr("data-src") || "";
+                if (src && src.length > 0) {
+                    pages.push(this.normalizeImageUrl(src));
+                }
+            });
 
-        return createChapterDetails({
-            id: chapterId,
-            mangaId: mangaId,
-            pages: pages
-        });
+            return createChapterDetails({
+                id: chapterId,
+                mangaId: mangaId,
+                pages: pages
+            });
+        } catch (error) {
+            console.error(`Error fetching chapter details for ${chapterId}:`, error);
+            throw error;
+        }
     }
 
     async searchRequest(query, metadata) {
@@ -144,67 +165,77 @@ class MangaTV extends Source {
     }
 
     async getSearchResults(query, metadata) {
-        const request = await this.searchRequest(query, metadata);
-        const response = await this.requestManager.schedule(request, 1);
-        const $ = cheerio.load(response.data);
+        try {
+            const request = await this.searchRequest(query, metadata);
+            const response = await this.requestManager.schedule(request, 1);
+            const $ = cheerio.load(response.data);
 
-        const results = [];
-        $("div.bsx").each((i, el) => {
-            const $el = $(el);
-            const link = $el.find("a").first();
-            const href = link.attr("href") || "";
-            const id = href.split("/").filter(x => x).pop();
-            const title = $el.find(".tt").text().trim();
-            const image = $el.find("img").attr("src") || "";
+            const results = [];
+            $("div.bsx").each((i, el) => {
+                const $el = $(el);
+                const link = $el.find("a").first();
+                const href = link.attr("href") || "";
+                const id = href.split("/").filter(x => x).pop();
+                const title = $el.find(".tt").text().trim();
+                const image = $el.find("img").attr("src") || "";
 
-            if (id && title) {
-                results.push(createMangaTile({
-                    id: id,
-                    title: { text: title },
-                    image: this.normalizeImageUrl(image)
-                }));
-            }
-        });
+                if (id && title) {
+                    results.push(createMangaTile({
+                        id: id,
+                        title: { text: title },
+                        image: this.normalizeImageUrl(image)
+                    }));
+                }
+            });
 
-        return createPagedResults({ results: results });
+            return createPagedResults({ results: results });
+        } catch (error) {
+            console.error(`Error searching with query "${query.title}":`, error);
+            throw error;
+        }
     }
 
     async getHomePageSections(sectionCallback) {
-        const request = createRequestObject({
-            url: BASE_URL,
-            method: "GET"
-        });
-        const response = await this.requestManager.schedule(request, 1);
-        const $ = cheerio.load(response.data);
+        try {
+            const request = createRequestObject({
+                url: BASE_URL,
+                method: "GET"
+            });
+            const response = await this.requestManager.schedule(request, 1);
+            const $ = cheerio.load(response.data);
 
-        const section = createHomeSection({
-            id: "latest",
-            title: "Últimos mangás",
-            type: HomeSectionType.singleRowNormal
-        });
+            const section = createHomeSection({
+                id: "latest",
+                title: "Últimos mangás",
+                type: HomeSectionType.singleRowNormal
+            });
 
-        const items = [];
-        $("div.bsx").each((i, el) => {
-            if (i >= 20) return; // limit to 20
-            
-            const $el = $(el);
-            const link = $el.find("a").first();
-            const href = link.attr("href") || "";
-            const id = href.split("/").filter(x => x).pop();
-            const title = $el.find(".tt").text().trim();
-            const image = $el.find("img").attr("src") || "";
+            const items = [];
+            $("div.bsx").each((i, el) => {
+                if (i >= 20) return; // limit to 20
+                
+                const $el = $(el);
+                const link = $el.find("a").first();
+                const href = link.attr("href") || "";
+                const id = href.split("/").filter(x => x).pop();
+                const title = $el.find(".tt").text().trim();
+                const image = $el.find("img").attr("src") || "";
 
-            if (id && title) {
-                items.push(createMangaTile({
-                    id: id,
-                    title: { text: title },
-                    image: this.normalizeImageUrl(image)
-                }));
-            }
-        });
+                if (id && title) {
+                    items.push(createMangaTile({
+                        id: id,
+                        title: { text: title },
+                        image: this.normalizeImageUrl(image)
+                    }));
+                }
+            });
 
-        section.items = items;
-        sectionCallback(section);
+            section.items = items;
+            sectionCallback(section);
+        } catch (error) {
+            console.error("Error fetching home page sections:", error);
+            throw error;
+        }
     }
 
     async getViewMoreItems(homepageSectionId, metadata) {
@@ -222,6 +253,23 @@ class MangaTV extends Source {
     extractChapterNumber(name) {
         const match = name.match(/(\d+(?:\.\d+)?)/);
         return match ? parseFloat(match[1]) : 0;
+    }
+
+    async getCloudflareBypassRequestAsync() {
+        return createRequestObject({
+            url: BASE_URL,
+            method: "GET",
+            headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+                "Accept-Encoding": "gzip, deflate, br",
+                "DNT": "1",
+                "Connection": "keep-alive",
+                "Upgrade-Insecure-Requests": "1",
+                "Referer": BASE_URL + "/"
+            }
+        });
     }
 }
 
