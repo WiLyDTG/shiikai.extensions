@@ -1,0 +1,31 @@
+{
+  "buildTime": "2026-02-15T04:40:00.000Z",
+  "sources": [
+    {
+      "id": "MangaTV",
+      "name": "MangaTV",
+      "author": "WiLyDTG",
+      "desc": "Extensión para leer manga desde mangatv.net",
+      "website": "https://github.com/WiLyDTG/shiikai.extensions",
+      "contentRating": "MATURE",
+      "version": "1.0.0",
+      "icon": "icon.png",
+      "tags": [
+        {
+          "text": "Spanish",
+          "type": "info"
+        },
+        {
+          "text": "Manga",
+          "type": "success"
+        }
+      ],
+      "websiteBaseURL": "https://mangatv.net",
+      "intents": 31
+    }
+  ],
+  "builtWith": {
+    "toolchain": "0.8.11",
+    "types": "0.8.11"
+  }
+}
