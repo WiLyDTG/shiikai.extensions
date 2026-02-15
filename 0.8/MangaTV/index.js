@@ -19,6 +19,7 @@ const {
 const cheerio = require("cheerio");
 
 const BASE_URL = "https://mangatv.net";
+const MAX_HOMEPAGE_ITEMS = 20;
 
 class MangaTV extends Source {
     constructor() {
@@ -184,6 +185,7 @@ class MangaTV extends Source {
             const $ = cheerio.load(response.data);
 
             const pages = [];
+            const seenUrls = new Set();
             
             // Try multiple selectors for image containers
             const selectors = [
@@ -202,8 +204,12 @@ class MangaTV extends Source {
                                $(el).attr("data-src") || 
                                $(el).attr("data-lazy-src") ||
                                "";
-                    if (src && src.length > 0 && !pages.includes(this.normalizeImageUrl(src))) {
-                        pages.push(this.normalizeImageUrl(src));
+                    if (src && src.length > 0) {
+                        const normalizedUrl = this.normalizeImageUrl(src);
+                        if (!seenUrls.has(normalizedUrl)) {
+                            seenUrls.add(normalizedUrl);
+                            pages.push(normalizedUrl);
+                        }
                     }
                 });
                 
@@ -315,7 +321,7 @@ class MangaTV extends Source {
             
             for (const selector of selectors) {
                 $(selector).each((i, el) => {
-                    if (i >= 20) return false; // limit to 20
+                    if (i >= MAX_HOMEPAGE_ITEMS) return false;
                     
                     const $el = $(el);
                     const link = $el.find("a").first();
